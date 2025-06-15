@@ -55,7 +55,7 @@
       margin: 1rem 0;
       position: relative;
       z-index: 1;
-      white-space: pre-wrap; /* For spaghettification newlines */
+      white-space: pre-wrap;
     }
     
     @keyframes flicker {
@@ -88,54 +88,46 @@
   <canvas id="blackhole-canvas"></canvas>
   <h1>The Entropic Archive</h1>
 
-  <form method="POST">
-    {% csrf_token %}
-    <textarea name="content" rows="3" placeholder="Submit your thoughts to the void..."></textarea><br>
+  <!-- Static form with JavaScript handling -->
+  <form id="archive-form">
+    <textarea name="content" rows="3" placeholder="Submit your thoughts to the void..." required></textarea><br>
     <button type="submit">Collapse into the Archive</button>
   </form>
 
-  {% for submission in submissions %}
-    <p class="fragment">{{ submission.fragments }}</p>
-  {% endfor %}
+  <!-- Container for dynamic submissions -->
+  <div id="submissions-container"></div>
 
   <script>
-    // Initialize Three.js scene
+    // ===== THREE.JS BLACK HOLE ANIMATION =====
     const canvas = document.getElementById('blackhole-canvas');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ 
-      canvas, 
-      alpha: true,
-      antialias: true 
-    });
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
-    // Create black hole
-    const geometry = new THREE.SphereGeometry(1, 64, 64);
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.9
-    });
-    const blackHole = new THREE.Mesh(geometry, material);
+    // Black hole core
+    const blackHole = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 64, 64),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.9 })
+    );
     scene.add(blackHole);
 
-    // Add glowing accretion disk
-    const diskGeometry = new THREE.TorusGeometry(1.5, 0.3, 16, 100);
-    const diskMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x4b79cf,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.8
-    });
-    const accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
+    // Accretion disk
+    const accretionDisk = new THREE.Mesh(
+      new THREE.TorusGeometry(1.5, 0.3, 16, 100),
+      new THREE.MeshBasicMaterial({ 
+        color: 0x4b79cf, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      })
+    );
     accretionDisk.rotation.x = Math.PI / 2;
     scene.add(accretionDisk);
 
     // Hawking radiation particles
     const particles = new THREE.Group();
     scene.add(particles);
-    
     for (let i = 0; i < 100; i++) {
       const particle = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 8, 8),
@@ -149,35 +141,72 @@
       particles.add(particle);
     }
 
-    // Position camera
     camera.position.z = 5;
 
-    // Animation loop
     function animate() {
       requestAnimationFrame(animate);
-      
-      // Rotate black hole and disk
       blackHole.rotation.y += 0.005;
       accretionDisk.rotation.z += 0.02;
-      
-      // Animate particles (Hawking radiation)
       particles.children.forEach(p => {
         p.position.x += (Math.random() - 0.5) * 0.02;
         p.position.y += Math.random() * 0.03;
         p.position.z += (Math.random() - 0.5) * 0.01;
         if (p.position.y > 3) p.position.y = -3;
       });
-      
       renderer.render(scene, camera);
     }
     animate();
 
-    // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+    // ===== FORM HANDLING & ENTROPY SIMULATION =====
+    let submissions = JSON.parse(localStorage.getItem('submissions')) || [];
+    const container = document.getElementById('submissions-container');
+
+    document.getElementById('archive-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const content = e.target.content.value.trim();
+      if (!content) return;
+      
+      submissions.push({
+        content,
+        createdAt: new Date().toISOString()
+      });
+      
+      localStorage.setItem('submissions', JSON.stringify(submissions));
+      renderSubmissions();
+      e.target.reset();
+    });
+
+    function renderSubmissions() {
+      container.innerHTML = submissions.map(sub => {
+        const elapsedSeconds = (new Date() - new Date(sub.createdAt)) / 1000;
+        return `<p class="fragment">${applyEntropy(sub.content, elapsedSeconds)}</p>`;
+      }).join('');
+    }
+
+    function applyEntropy(text, elapsedSeconds) {
+      const chars = [...text];
+      const corruptionRate = Math.min(Math.floor(elapsedSeconds ** 0.7), 100);
+      const symbols = ['★', '✧', '♆', '⌇', '⟁', '⍟'];
+      
+      for (let i = 0; i < corruptionRate; i++) {
+        if (chars.length) {
+          const idx = Math.floor(Math.random() * chars.length);
+          chars[idx] = symbols[Math.floor(Math.random() * symbols.length)];
+        }
+      }
+      
+      // Spaghettification after 60 seconds
+      return elapsedSeconds > 60 ? chars.join('').split('').join('\n') : chars.join('');
+    }
+
+    // Initial render
+    renderSubmissions();
   </script>
 </body>
 </html>
