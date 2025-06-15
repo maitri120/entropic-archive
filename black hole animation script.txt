@@ -1,0 +1,339 @@
+black hole animation script:
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Hole Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            display: block;
+            background: radial-gradient(circle at center, #000811 0%, #000000 100%);
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            z-index: 100;
+        }
+        
+        .control {
+            margin: 10px 0;
+        }
+        
+        input[type="range"] {
+            width: 200px;
+        }
+        
+        .info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #888;
+            font-size: 12px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <div class="control">
+            <label>Rotation Speed: <span id="speedValue">1.0</span></label><br>
+            <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+        </div>
+        <div class="control">
+            <label>Particle Count: <span id="particleValue">500</span></label><br>
+            <input type="range" id="particleSlider" min="100" max="1000" step="50" value="500">
+        </div>
+        <div class="control">
+            <label>Disk Brightness: <span id="brightnessValue">0.8</span></label><br>
+            <input type="range" id="brightnessSlider" min="0.3" max="1.5" step="0.1" value="0.8">
+        </div>
+    </div>
+    
+    <div class="info">
+        Black Hole Simulation<br>
+        Accretion Disk & Gravitational Effects
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Animation parameters
+        let animationSpeed = 1.0;
+        let particleCount = 500;
+        let diskBrightness = 0.8;
+        let time = 0;
+        
+        // Black hole properties
+        const blackHole = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            eventHorizonRadius: 30,
+            schwarzschildRadius: 45,
+            mass: 1000
+        };
+        
+        // Particle system for accretion disk
+        let particles = [];
+        
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 80 + Math.random() * 200;
+                this.x = blackHole.x + Math.cos(angle) * distance;
+                this.y = blackHole.y + Math.sin(angle) * distance;
+                this.vx = 0;
+                this.vy = 0;
+                this.life = 1.0;
+                this.temperature = Math.random() * 0.5 + 0.5;
+                this.size = Math.random() * 2 + 0.5;
+                this.originalDistance = distance;
+            }
+            
+            update() {
+                // Calculate distance to black hole
+                const dx = this.x - blackHole.x;
+                const dy = this.y - blackHole.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Gravitational force
+                const force = blackHole.mass / (distance * distance + 100);
+                const forceX = -dx / distance * force * 0.01;
+                const forceY = -dy / distance * force * 0.01;
+                
+                // Orbital velocity (perpendicular to radius)
+                const orbitalSpeed = Math.sqrt(blackHole.mass / (distance + 10)) * 0.02 * animationSpeed;
+                this.vx += forceX - dy / distance * orbitalSpeed;
+                this.vy += forceY + dx / distance * orbitalSpeed;
+                
+                // Apply velocity with damping
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Update temperature based on distance (closer = hotter)
+                this.temperature = Math.max(0.1, 1.0 - (distance - 50) / 200);
+                
+                // Reset if too close or too far
+                if (distance < blackHole.eventHorizonRadius || distance > 400) {
+                    this.reset();
+                }
+                
+                // Life decay for particles getting too close
+                if (distance < blackHole.schwarzschildRadius) {
+                    this.life -= 0.02;
+                }
+            }
+            
+            draw() {
+                if (this.life <= 0) return;
+                
+                const alpha = this.life * diskBrightness;
+                
+                // Temperature-based color
+                let r, g, b;
+                if (this.temperature > 0.7) {
+                    // Hot: white-blue
+                    r = 255;
+                    g = 200 + this.temperature * 55;
+                    b = 255;
+                } else if (this.temperature > 0.4) {
+                    // Medium: orange-yellow
+                    r = 255;
+                    g = 100 + this.temperature * 155;
+                    b = this.temperature * 100;
+                } else {
+                    // Cool: red-orange
+                    r = 150 + this.temperature * 105;
+                    g = this.temperature * 100;
+                    b = 20;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                ctx.fill();
+                
+                // Add glow effect for brighter particles
+                if (this.temperature > 0.6) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.1})`;
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Initialize particles
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+        initParticles();
+        
+        // Draw black hole
+        function drawBlackHole() {
+            // Update black hole position
+            blackHole.x = canvas.width / 2;
+            blackHole.y = canvas.height / 2;
+            
+            // Photon sphere (light bending effect)
+            const gradient1 = ctx.createRadialGradient(
+                blackHole.x, blackHole.y, blackHole.schwarzschildRadius,
+                blackHole.x, blackHole.y, blackHole.schwarzschildRadius + 30
+            );
+            gradient1.addColorStop(0, 'rgba(255, 200, 100, 0.1)');
+            gradient1.addColorStop(1, 'rgba(255, 200, 100, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(blackHole.x, blackHole.y, blackHole.schwarzschildRadius + 30, 0, Math.PI * 2);
+            ctx.fillStyle = gradient1;
+            ctx.fill();
+            
+            // Schwarzschild radius (last stable orbit)
+            ctx.beginPath();
+            ctx.arc(blackHole.x, blackHole.y, blackHole.schwarzschildRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 150, 0, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Event Horizon (absolute black)
+            ctx.beginPath();
+            ctx.arc(blackHole.x, blackHole.y, blackHole.eventHorizonRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            
+            // Event horizon edge effect
+            ctx.beginPath();
+            ctx.arc(blackHole.x, blackHole.y, blackHole.eventHorizonRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(100, 50, 200, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        // Draw gravitational lensing effect
+        function drawLensingEffect() {
+            const lensingRadius = blackHole.schwarzschildRadius + 60;
+            
+            // Create multiple rings for lensing effect
+            for (let i = 0; i < 3; i++) {
+                const radius = lensingRadius + i * 20;
+                const alpha = (0.1 - i * 0.02) * Math.sin(time * 0.5 + i) * 0.5 + 0.05;
+                
+                ctx.beginPath();
+                ctx.arc(blackHole.x, blackHole.y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(150, 100, 255, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        
+        // Draw jets (polar emissions)
+        function drawJets() {
+            const jetLength = 150;
+            const jetWidth = 8;
+            
+            for (let pole = -1; pole <= 1; pole += 2) {
+                const gradient = ctx.createLinearGradient(
+                    blackHole.x, blackHole.y,
+                    blackHole.x, blackHole.y + pole * jetLength
+                );
+                gradient.addColorStop(0, 'rgba(100, 200, 255, 0.6)');
+                gradient.addColorStop(0.7, 'rgba(100, 150, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+                
+                ctx.beginPath();
+                ctx.moveTo(blackHole.x - jetWidth, blackHole.y);
+                ctx.lineTo(blackHole.x + jetWidth, blackHole.y);
+                ctx.lineTo(blackHole.x + jetWidth * 0.3, blackHole.y + pole * jetLength);
+                ctx.lineTo(blackHole.x - jetWidth * 0.3, blackHole.y + pole * jetLength);
+                ctx.closePath();
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+        
+        // Main animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Create starfield background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            for (let i = 0; i < 100; i++) {
+                const x = (Math.sin(i * 17.3 + time * 0.01) * 0.5 + 0.5) * canvas.width;
+                const y = (Math.cos(i * 23.7 + time * 0.01) * 0.5 + 0.5) * canvas.height;
+                const size = Math.sin(i * 7.1 + time * 0.02) * 0.5 + 0.5;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw components in order
+            drawLensingEffect();
+            drawJets();
+            
+            // Update and draw particles
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            drawBlackHole();
+            
+            time += 0.5;
+            requestAnimationFrame(animate);
+        }
+        
+        // Control handlers
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = animationSpeed.toFixed(1);
+        });
+        
+        document.getElementById('particleSlider').addEventListener('input', (e) => {
+            particleCount = parseInt(e.target.value);
+            document.getElementById('particleValue').textContent = particleCount;
+            initParticles();
+        });
+        
+        document.getElementById('brightnessSlider').addEventListener('input', (e) => {
+            diskBrightness = parseFloat(e.target.value);
+            document.getElementById('brightnessValue').textContent = diskBrightness.toFixed(1);
+        });
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
