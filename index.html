@@ -190,17 +190,42 @@
     let activeSubmissions = [];
     let cosmicParticles = JSON.parse(localStorage.getItem('cosmicParticles')) || [];
 
-    // Convert old submissions to particles on load
+    // Convert old submissions to particles on load if no cosmic particles exist
     if (cosmicParticles.length === 0) {
       const oldSubmissions = JSON.parse(localStorage.getItem('submissions')) || [];
       cosmicParticles = oldSubmissions.map(sub => ({
-        content: applyEntropy(sub.content, (new Date() - new Date(sub.createdAt)) / 1000),
-        x: Math.random() * 2 - 1,
-        y: Math.random() * 2 - 1,
-        z: Math.random() * 2 - 1
+        content: applyHeavyEntropy(sub.content),
+        x: Math.random() * 4 - 2,
+        y: Math.random() * 4 - 2,
+        z: Math.random() * 4 - 2
       }));
-      localStorage.setItem('cosmicParticles', JSON.stringify(cosmicParticles));
-      localStorage.removeItem('submissions');
+      if (cosmicParticles.length > 0) {
+        localStorage.setItem('cosmicParticles', JSON.stringify(cosmicParticles));
+        localStorage.removeItem('submissions');
+      }
+    }
+
+    // Initialize cosmic particles in the scene
+    function initializeCosmicParticles() {
+      cosmicParticles.forEach(particle => {
+        addParticleToScene(particle);
+      });
+    }
+
+    function addParticleToScene(particle) {
+      const geom = new THREE.SphereGeometry(0.03, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ 
+        color: 0x88ccff,
+        transparent: true,
+        opacity: 0.7
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(particle.x, particle.y, particle.z);
+      mesh.userData = { 
+        isParticle: true,
+        originalContent: particle.content
+      };
+      scene.add(mesh);
     }
 
     document.getElementById('archive-form').addEventListener('submit', (e) => {
@@ -208,7 +233,6 @@
       const content = e.target.content.value.trim();
       if (!content) return;
       
-      // Create falling animation
       createFallingElement(content, e.target);
       
       // Add to active submissions
@@ -253,13 +277,13 @@
     function convertToCosmicParticle(text) {
       const particle = {
         content: applyHeavyEntropy(text),
-        x: Math.random() * 2 - 1,
-        y: Math.random() * 2 - 1,
-        z: Math.random() * 2 - 1
+        x: Math.random() * 4 - 2,
+        y: Math.random() * 4 - 2,
+        z: Math.random() * 4 - 2
       };
       cosmicParticles.push(particle);
       localStorage.setItem('cosmicParticles', JSON.stringify(cosmicParticles));
-      updateCosmicParticles();
+      addParticleToScene(particle);
     }
 
     function applyProgressiveEntropy(text, progress) {
@@ -315,26 +339,6 @@
       }).join('');
     }
 
-    // Update Three.js scene with cosmic particles
-    function updateCosmicParticles() {
-      // Remove old particle meshes
-      scene.children.filter(child => child.userData.isParticle).forEach(p => scene.remove(p));
-      
-      // Add new particles
-      cosmicParticles.forEach(particle => {
-        const geom = new THREE.SphereGeometry(0.03, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({ 
-          color: 0x88ccff,
-          transparent: true,
-          opacity: 0.7
-        });
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(particle.x, particle.y, particle.z);
-        mesh.userData = { isParticle: true };
-        scene.add(mesh);
-      });
-    }
-
     function animate() {
       requestAnimationFrame(animate);
       blackHole.rotation.y += 0.005;
@@ -349,7 +353,7 @@
       });
       
       // Move cosmic particles
-      scene.children.filter(child => child.userData.isParticle).forEach(p => {
+      scene.children.filter(child => child.userData?.isParticle).forEach(p => {
         // Orbit around black hole with slight randomness
         p.position.x += (Math.random() - 0.5) * 0.01;
         p.position.y += (Math.random() - 0.5) * 0.01;
@@ -370,8 +374,8 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Initialize cosmic particles and start animation
-    updateCosmicParticles();
+    // Initialize and start everything
+    initializeCosmicParticles();
     animate();
     renderActiveSubmissions();
   </script>
