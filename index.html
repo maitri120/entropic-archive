@@ -66,32 +66,33 @@
     @keyframes collapseIntoHole {
       0% {
         opacity: 1;
-        transform: scale(1) translateY(0) rotate(0deg);
+        transform: translate(-50%, 0) scale(1) rotate(0deg);
         filter: blur(0);
       }
-      50% {
-        transform: scale(0.5) translateY(100px) rotate(15deg);
+      70% {
+        opacity: 0.8;
+        transform: translate(-50%, 300px) scale(0.8) rotate(180deg);
         filter: blur(1px);
       }
       100% {
-        transform: scale(0.05) translateY(400px) rotate(720deg);
         opacity: 0;
-        filter: blur(5px);
+        transform: translate(-50%, 600px) scale(0.1) rotate(720deg);
+        filter: blur(3px);
       }
-  }
+    }
 
-  .falling-fragment {
-    animation: collapseIntoHole 3s ease-in forwards;
-    pointer-events: none;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: pre-wrap;
-    font-size: 1.2rem;
-    color: #00ff99;
-    z-index: 2;
-  }
-
+    .falling-fragment {
+      animation: collapseIntoHole 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: pre-wrap;
+      font-size: 1.2rem;
+      color: #00ff99;
+      z-index: 10;
+      pointer-events: none;
+      text-shadow: 0 0 5px #00ff99;
+    }
     
     #blackhole-canvas {
       position: fixed;
@@ -118,13 +119,11 @@
   <canvas id="blackhole-canvas"></canvas>
   <h1>The Entropic Archive</h1>
 
-  <!-- Static form with JavaScript handling -->
   <form id="archive-form">
     <textarea name="content" rows="3" placeholder="Submit your thoughts to the void..." required></textarea><br>
     <button type="submit">Collapse into the Archive</button>
   </form>
 
-  <!-- Container for dynamic submissions -->
   <div id="submissions-container"></div>
 
   <script>
@@ -202,30 +201,45 @@
       const content = e.target.content.value.trim();
       if (!content) return;
       
-      submissions.push({
-        content,
-        createdAt: new Date().toISOString()
-      });
+      // Create and animate falling element first
+      createFallingElement(content, e.target);
       
-      localStorage.setItem('submissions', JSON.stringify(submissions));
-      renderSubmissions();
-      e.target.reset();
+      // Then add to storage after a delay
+      setTimeout(() => {
+        submissions.push({
+          content,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem('submissions', JSON.stringify(submissions));
+        renderAllSubmissions();
+        e.target.reset();
+      }, 500);
     });
 
-    function renderSubmissions() {
-      const last = submissions[submissions.length - 1];
-      if (!last) return;
-
-      const frag = document.createElement('div');
-      frag.className = 'falling-fragment';
-      frag.textContent = last.content;
-
-      document.body.appendChild(frag);
-
-  
-      setTimeout(() => frag.remove(), 3000);
+    function createFallingElement(text, formElement) {
+      const fallingElement = document.createElement('div');
+      fallingElement.className = 'falling-fragment';
+      fallingElement.textContent = text;
+      
+      // Position at the form
+      const formRect = formElement.getBoundingClientRect();
+      fallingElement.style.left = `${formRect.left + formRect.width/2}px`;
+      fallingElement.style.top = `${formRect.bottom}px`;
+      
+      document.body.appendChild(fallingElement);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        fallingElement.remove();
+      }, 2500);
     }
 
+    function renderAllSubmissions() {
+      container.innerHTML = submissions.map(sub => {
+        const elapsedSeconds = (new Date() - new Date(sub.createdAt)) / 1000;
+        return `<p class="fragment">${applyEntropy(sub.content, elapsedSeconds)}</p>`;
+      }).join('');
+    }
 
     function applyEntropy(text, elapsedSeconds) {
       const chars = [...text];
@@ -239,12 +253,11 @@
         }
       }
       
-      // Spaghettification after 60 seconds
       return elapsedSeconds > 60 ? chars.join('').split('').join('\n') : chars.join('');
     }
 
     // Initial render
-    renderSubmissions();
+    renderAllSubmissions();
   </script>
 </body>
 </html>
