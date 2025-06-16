@@ -116,6 +116,16 @@
       z-index: 1;
       text-shadow: 0 0 10px rgba(75, 121, 207, 0.5);
     }
+
+    .cosmic-particle {
+      position: absolute;
+      color: rgba(136, 204, 255, 0.7);
+      text-shadow: 0 0 8px #88ccff;
+      pointer-events: none;
+      font-size: 0.8rem;
+      white-space: pre;
+      transform-origin: center;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -176,66 +186,40 @@
 
     camera.position.z = 5;
 
-    function animate() {
-      requestAnimationFrame(animate);
-      blackHole.rotation.y += 0.005;
-      accretionDisk.rotation.z += 0.02;
-      particles.children.forEach(p => {
-        p.position.x += (Math.random() - 0.5) * 0.02;
-        p.position.y += Math.random() * 0.03;
-        p.position.z += (Math.random() - 0.5) * 0.01;
-        if (p.position.y > 3) p.position.y = -3;
-      });
-      renderer.render(scene, camera);
+    // ===== FORM HANDLING & COSMIC ENTROPY =====
+    let activeSubmissions = [];
+    let cosmicParticles = JSON.parse(localStorage.getItem('cosmicParticles')) || [];
+
+    // Convert old submissions to particles on load
+    if (cosmicParticles.length === 0) {
+      const oldSubmissions = JSON.parse(localStorage.getItem('submissions')) || [];
+      cosmicParticles = oldSubmissions.map(sub => ({
+        content: applyEntropy(sub.content, (new Date() - new Date(sub.createdAt)) / 1000),
+        x: Math.random() * 2 - 1,
+        y: Math.random() * 2 - 1,
+        z: Math.random() * 2 - 1
+      }));
+      localStorage.setItem('cosmicParticles', JSON.stringify(cosmicParticles));
+      localStorage.removeItem('submissions');
     }
-    animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // ===== FORM HANDLING & ENTROPY SIMULATION =====
-    let submissions = JSON.parse(localStorage.getItem('submissions')) || [];
-    const container = document.getElementById('submissions-container');
 
     document.getElementById('archive-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const content = e.target.content.value.trim();
       if (!content) return;
       
+      // Create falling animation
       createFallingElement(content, e.target);
       
-      setTimeout(() => {
-        submissions.push({
-          content,
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('submissions', JSON.stringify(submissions));
-        renderAllSubmissions();
-        e.target.reset();
-      }, 500);
+      // Add to active submissions
+      activeSubmissions.push({
+        content,
+        createdAt: new Date().toISOString()
+      });
+      
+      renderActiveSubmissions();
+      e.target.reset();
     });
-
-    function applyProgressiveEntropy(text, progress) {
-      const chars = [...text];
-      const corruptionRate = Math.min(Math.floor(progress * 100), 100);
-      const symbols = ['★', '✧', '♆', '⌇', '⟁', '⍟'];
-      
-      for (let i = 0; i < corruptionRate; i++) {
-        if (chars.length) {
-          const idx = Math.floor(Math.random() * chars.length);
-          chars[idx] = symbols[Math.floor(Math.random() * symbols.length)];
-        }
-      }
-      
-      if (progress > 0.8) {
-        return chars.join('').split('').join('\n');
-      }
-      
-      return chars.join('');
-    }
 
     function createFallingElement(text, formElement) {
       const fallingElement = document.createElement('div');
@@ -259,23 +243,53 @@
             if (document.body.contains(fallingElement)) {
               fallingElement.remove();
             }
+            // Convert to cosmic particle when animation ends
+            convertToCosmicParticle(text);
           }, 500);
         }
       }, 100);
-
-      // Safety net to remove element if still exists after 3s
-      setTimeout(() => {
-        if (document.body.contains(fallingElement)) {
-          fallingElement.remove();
-        }
-      }, 3000);
     }
 
-    function renderAllSubmissions() {
-      container.innerHTML = submissions.map(sub => {
-        const elapsedSeconds = (new Date() - new Date(sub.createdAt)) / 1000;
-        return `<p class="fragment">${applyEntropy(sub.content, elapsedSeconds)}</p>`;
-      }).join('');
+    function convertToCosmicParticle(text) {
+      const particle = {
+        content: applyHeavyEntropy(text),
+        x: Math.random() * 2 - 1,
+        y: Math.random() * 2 - 1,
+        z: Math.random() * 2 - 1
+      };
+      cosmicParticles.push(particle);
+      localStorage.setItem('cosmicParticles', JSON.stringify(cosmicParticles));
+      updateCosmicParticles();
+    }
+
+    function applyProgressiveEntropy(text, progress) {
+      const chars = [...text];
+      const corruptionRate = Math.min(Math.floor(progress * 100), 100);
+      const symbols = ['★', '✧', '♆', '⌇', '⟁', '⍟'];
+      
+      for (let i = 0; i < corruptionRate; i++) {
+        if (chars.length) {
+          const idx = Math.floor(Math.random() * chars.length);
+          chars[idx] = symbols[Math.floor(Math.random() * symbols.length)];
+        }
+      }
+      
+      if (progress > 0.8) {
+        return chars.join('').split('').join('\n');
+      }
+      
+      return chars.join('');
+    }
+
+    function applyHeavyEntropy(text) {
+      const chars = [...text];
+      // More aggressive corruption for particles
+      for (let i = 0; i < chars.length; i++) {
+        if (Math.random() > 0.3) {
+          chars[i] = ['★', '✧', '♆', '⌇', '⟁', '⍟', '*', '~'][Math.floor(Math.random() * 8)];
+        }
+      }
+      return chars.join('').split('').join('\n'); // Always spaghettified
     }
 
     function applyEntropy(text, elapsedSeconds) {
@@ -293,8 +307,73 @@
       return elapsedSeconds > 60 ? chars.join('').split('').join('\n') : chars.join('');
     }
 
-    // Initial render
-    renderAllSubmissions();
+    function renderActiveSubmissions() {
+      const container = document.getElementById('submissions-container');
+      container.innerHTML = activeSubmissions.map(sub => {
+        const elapsedSeconds = (new Date() - new Date(sub.createdAt)) / 1000;
+        return `<p class="fragment">${applyEntropy(sub.content, elapsedSeconds)}</p>`;
+      }).join('');
+    }
+
+    // Update Three.js scene with cosmic particles
+    function updateCosmicParticles() {
+      // Remove old particle meshes
+      scene.children.filter(child => child.userData.isParticle).forEach(p => scene.remove(p));
+      
+      // Add new particles
+      cosmicParticles.forEach(particle => {
+        const geom = new THREE.SphereGeometry(0.03, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ 
+          color: 0x88ccff,
+          transparent: true,
+          opacity: 0.7
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(particle.x, particle.y, particle.z);
+        mesh.userData = { isParticle: true };
+        scene.add(mesh);
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      blackHole.rotation.y += 0.005;
+      accretionDisk.rotation.z += 0.02;
+      
+      // Move Hawking radiation particles
+      particles.children.forEach(p => {
+        p.position.x += (Math.random() - 0.5) * 0.02;
+        p.position.y += Math.random() * 0.03;
+        p.position.z += (Math.random() - 0.5) * 0.01;
+        if (p.position.y > 3) p.position.y = -3;
+      });
+      
+      // Move cosmic particles
+      scene.children.filter(child => child.userData.isParticle).forEach(p => {
+        // Orbit around black hole with slight randomness
+        p.position.x += (Math.random() - 0.5) * 0.01;
+        p.position.y += (Math.random() - 0.5) * 0.01;
+        p.position.z += (Math.random() - 0.5) * 0.01;
+        
+        // Slight pull toward center
+        p.position.x *= 0.995;
+        p.position.y *= 0.995;
+        p.position.z *= 0.995;
+      });
+      
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize cosmic particles and start animation
+    updateCosmicParticles();
+    animate();
+    renderActiveSubmissions();
   </script>
 </body>
 </html>
