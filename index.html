@@ -67,17 +67,19 @@
       0% {
         opacity: 1;
         transform: translate(-50%, 0) scale(1) rotate(0deg);
-        filter: blur(0);
+        filter: blur(0) hue-rotate(0deg);
+        letter-spacing: normal;
       }
-      70% {
-        opacity: 0.8;
+      50% {
+        letter-spacing: 1px;
         transform: translate(-50%, 300px) scale(0.8) rotate(180deg);
-        filter: blur(1px);
+        filter: blur(1px) hue-rotate(90deg);
       }
       100% {
         opacity: 0;
         transform: translate(-50%, 600px) scale(0.1) rotate(720deg);
-        filter: blur(3px);
+        filter: blur(3px) hue-rotate(180deg);
+        letter-spacing: 3px;
       }
     }
 
@@ -92,6 +94,8 @@
       z-index: 10;
       pointer-events: none;
       text-shadow: 0 0 5px #00ff99;
+      font-family: 'Courier New', Courier, monospace;
+      will-change: transform, filter, opacity;
     }
     
     #blackhole-canvas {
@@ -201,10 +205,8 @@
       const content = e.target.content.value.trim();
       if (!content) return;
       
-      // Create and animate falling element first
       createFallingElement(content, e.target);
       
-      // Then add to storage after a delay
       setTimeout(() => {
         submissions.push({
           content,
@@ -216,22 +218,57 @@
       }, 500);
     });
 
+    function applyProgressiveEntropy(text, progress) {
+      const chars = [...text];
+      const corruptionRate = Math.min(Math.floor(progress * 100), 100);
+      const symbols = ['★', '✧', '♆', '⌇', '⟁', '⍟'];
+      
+      for (let i = 0; i < corruptionRate; i++) {
+        if (chars.length) {
+          const idx = Math.floor(Math.random() * chars.length);
+          chars[idx] = symbols[Math.floor(Math.random() * symbols.length)];
+        }
+      }
+      
+      if (progress > 0.8) {
+        return chars.join('').split('').join('\n');
+      }
+      
+      return chars.join('');
+    }
+
     function createFallingElement(text, formElement) {
       const fallingElement = document.createElement('div');
       fallingElement.className = 'falling-fragment';
       fallingElement.textContent = text;
       
-      // Position at the form
       const formRect = formElement.getBoundingClientRect();
       fallingElement.style.left = `${formRect.left + formRect.width/2}px`;
       fallingElement.style.top = `${formRect.bottom}px`;
       
       document.body.appendChild(fallingElement);
-      
-      // Remove after animation completes
+
+      let progress = 0;
+      const corruptInterval = setInterval(() => {
+        progress += 0.05;
+        fallingElement.textContent = applyProgressiveEntropy(text, progress);
+        
+        if (progress >= 1) {
+          clearInterval(corruptInterval);
+          setTimeout(() => {
+            if (document.body.contains(fallingElement)) {
+              fallingElement.remove();
+            }
+          }, 500);
+        }
+      }, 100);
+
+      // Safety net to remove element if still exists after 3s
       setTimeout(() => {
-        fallingElement.remove();
-      }, 2500);
+        if (document.body.contains(fallingElement)) {
+          fallingElement.remove();
+        }
+      }, 3000);
     }
 
     function renderAllSubmissions() {
