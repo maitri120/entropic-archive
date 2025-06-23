@@ -266,7 +266,7 @@
     camera.position.z = 5;
 
     // ===== ENTROPIC ESCALATION NOISE =====
-    let entropyLevel =0;
+    let entropyLevel = 0;
     let timeOnPage = 0;
     const maxEntropy = 100; // Maximum entropy level
     let entropyInterval;
@@ -288,7 +288,7 @@
 
       //1. Background flickering
       if(Math.random() < entropyLevel/150) {
-        body.style.background = `rgb($(Math.floor(10 +entropyLevel/5)}, 0, 0)`;
+        body.style.background = `rgb(${Math.floor(10 +entropyLevel/5)}, 0, 0)`;
         setTimeout(() => {
           body.style.background = 'black';
         }, 100);
@@ -333,7 +333,7 @@
       form.style.transform = `
         perspective(500px) 
         rotateX(${(Math.random() - 0.5) * entropyLevel/20}deg)
-        rotateY($({Math.random() - 0.5) * entropyLevel/20}deg)
+        rotateY(${(Math.random() - 0.5) * entropyLevel/20}deg)
         scale(${1 - entropyLevel / 1000})
       `;
     }
