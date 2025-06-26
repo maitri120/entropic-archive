@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>The Entropic Archive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
     body {
       background: black;
@@ -11,7 +12,6 @@
       margin: 0;
       overflow-x: hidden;
     }
-    
     
     button:hover {
       background: #333;
@@ -160,7 +160,6 @@
       transform-origin: center;
     }
 
-    /* New floating text styles */
     .floating-text {
       position: fixed;
       color: rgba(136, 204, 255, 0.9);
@@ -293,13 +292,14 @@
       uniforms: {
         time: { value: 0 },
         distortion: { value: 2.5 },
-        power: { value: 1.2}
+        power: { value: 1.2 }
       },
       vertexShader: `
         varying vec2 vUv;
         void main() {
           vUv = uv;
-          g1_position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);}
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
       `,
       fragmentShader: `
         uniform float time;
@@ -373,7 +373,7 @@
           float glow = pow(radial, 3.0);
 
           //Pulsing effect
-          float pulse = 0.5 + 0.5 * sin(time * 3.0);
+          float pulse = 0.8 + 0.2 * sin(time * 3.0);
 
           //Doppler effect
           float doppler = vPosition.y * 0.5;
@@ -424,59 +424,12 @@
     scene.add(particles);
     camera.position.z = 5;
 
-    //animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      
-      const time = performance.now() * 0.001;
-
-      // Update shaders
-      blackHoleMaterial.uniforms.time.value = time;
-      diskMaterial.uniforms.time.value = time;
-
-      //Black hole rotation
-      blackHole.rotation.y = time * 0.1;
-      accretionDisk.rotation.z = time * 0.5;
-
-      // Particle animation with spaghettification
-      const positions = particles.geometry.attributes.position.array;
-      for (let i = 0; i < positions.length; i += 3) {
-        const x = positions[i];
-        const y = positions[i + 1];
-        const z = positions[i + 2];
-
-        const distance = Math.sqrt(x * x + y * y + z * z);
-        const fallFactor = 0.98 - (0.02 * (1.0 - smoothstep(1.0, 3.0, distance)));
-
-        // Spaghettification - stretch along z-axis as they approach
-        const stretch = 1.0 + (2.0 / (distance + 0.1));
-        positions[i] = x * fallFactor;
-        positions[i+1] = y * fallFactor;
-        positions[i+2] = z * fallFactor * stretch;
-
-        if (distance < 0.5) {
-          const theta = Math.random() * Math.PI * 2;
-          const phi = Math.acos(2.0 * Math.random() - 1.0);
-          const radius = 3.0 + Math.random() * 2.0;
-
-          positions[i] = radius * Math.sin(phi) * Math.cos(theta);
-          positions[i+1] = radius * Math.sin(phi) * Math.sin(theta);
-          positions[i+2] = radius * Math.cos(phi);
-        }
-      }
-      particles.geometry.attributes.position.needsUpdate = true;
-      renderer.render(scene, camera);
-    }
-    animate();
-
-
     // ===== ENTROPIC ESCALATION NOISE =====
     let entropyLevel = 0;
     let timeOnPage = 0;
-    const maxEntropy = 100; // Maximum entropy level
+    const maxEntropy = 100;
     let entropyInterval;
 
-    // Start entropy escalation when the page loads
     function startEntropyEscalation() {
       entropyInterval = setInterval(() => {
         timeOnPage += 5;
@@ -485,7 +438,6 @@
       }, 5000);
     }
 
-    //Apply visual effects based on entropy levels
     function applyEntropicEffects() {
       if (entropyLevel < 5) return;
 
@@ -498,58 +450,56 @@
           body.style.background = 'black';
         }, 100);
       }
-    }
 
-    //2. Text corruption
-    const fragments = document.querySelectorAll('.fragment, .floating-text');
-    fragments.forEach(el => {
-      if (Math.random() < entropyLevel / 200) {
-        const rotate = (Math.random() - 0.5) * entropyLevel/10;
-        const skew = (Math.random() - 0.5) * entropyLevel/20;
-        el.style.transform = `rotate(${rotate}deg) skew(${skew}deg)`;
+      //2. Text corruption
+      const fragments = document.querySelectorAll('.fragment, .floating-text');
+      fragments.forEach(el => {
+        if (Math.random() < entropyLevel / 200) {
+          const rotate = (Math.random() - 0.5) * entropyLevel/10;
+          const skew = (Math.random() - 0.5) * entropyLevel/20;
+          el.style.transform = `rotate(${rotate}deg) skew(${skew}deg)`;
+        }
+
+        if (Math.random() < entropyLevel/250) {
+          const hue = Math.random() * 60 - 30;
+          el.style.filter = `hue-rotate(${hue}deg)`;
+          setTimeout(() => {
+            el.style.filter = '';
+          }, 1000 + Math.random() * 2000);
+        }
+      });
+
+      //3. Layout Shifts
+      if (Math.random() < entropyLevel / 300) {
+        const container = document.getElementById('submissions-container');
+        const shiftX = (Math.random() - 0.5) * entropyLevel / 2;
+        const shiftY = (Math.random() - 0.5) * entropyLevel / 3;
+        container.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
       }
 
-      //random color shift
-      if (Math.random() < entropyLevel/250) {
-        const hue = Math.random() * 60 - 30;
-        el.style.filter = `hue-rotate(${hue}deg)`;
-        setTimeout(() => {
-          el.style.filter = '';
-        }, 1000 + Math.random() * 2000);
+      //4. Noise background
+      if (entropyLevel > 30 && Math.random() < entropyLevel/400) {
+        addNoiseParticles(1 + Math.floor(entropyLevel/20));
       }
-    });
 
-    //3. Layout Shifts
-    if (Math.random() < entropyLevel / 300) {
-      const container = document.getElementById('submissions-container');
-      const shiftX = (Math.random() - 0.5) * entropyLevel / 2;
-      const shiftY = (Math.random() - 0.5) * entropyLevel / 3;
-      container.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+      //5. Form distortion
+      const form = document.getElementById('archive-form');
+      if (entropyLevel > 50) {
+        form.style.transform = `
+          perspective(500px) 
+          rotateX(${(Math.random() - 0.5) * entropyLevel/20}deg)
+          rotateY(${(Math.random() - 0.5) * entropyLevel/20}deg)
+          scale(${1 - entropyLevel / 1000})
+        `;
+      }
+
+      //6. Black Hole becomes active
+      if (entropyLevel > 40){
+        blackHole.rotation.y += 0.001 * entropyLevel/20;
+        accretionDisk.rotation.z += 0.002 * entropyLevel/20;
+      }
     }
 
-    //4. Noise background
-    if (entropyLevel > 30 && Math.random() < entropyLevel/400) {
-      addNoiseParticles(1 + Math.floor(entropyLevel/20));
-    }
-
-    //5. Form distortion
-    const form = document.getElementById('archive-form');
-    if (entropyLevel > 50) {
-      form.style.transform = `
-        perspective(500px) 
-        rotateX(${(Math.random() - 0.5) * entropyLevel/20}deg)
-        rotateY(${(Math.random() - 0.5) * entropyLevel/20}deg)
-        scale(${1 - entropyLevel / 1000})
-      `;
-    }
-
-    //6. Black Hole becomes active
-    if (entropyLevel > 40){
-      blackHole.rotation.y += 0.001 * entropyLevel/20;
-      accretionDisk.rotation.z += 0.002 * entropyLevel/20;
-    }
-
-    //Noise particle generation
     function addNoiseParticles(count) {
       for (let i = 0; i < count; i++) {
         const particle = document.createElement('div');
@@ -566,21 +516,18 @@
         }, 30000 + Math.random() * 30000);
       }
     }
-        
 
     // ===== FORM HANDLING & COSMIC ENTROPY =====
     let activeSubmissions = [];
     let cosmicParticles = [];
     let floatingTextElements = [];
 
-    // Load cosmic particles from localStorage (no localStorage restriction applies to loading existing data)
     try {
       cosmicParticles = JSON.parse(localStorage.getItem('cosmicParticles')) || [];
     } catch (e) {
       cosmicParticles = [];
     }
 
-    // Convert old submissions to particles on load if no cosmic particles exist
     if (cosmicParticles.length === 0) {
       try {
         const oldSubmissions = JSON.parse(localStorage.getItem('submissions')) || [];
@@ -599,7 +546,6 @@
       }
     }
 
-    // Initialize cosmic particles in the scene
     function initializeCosmicParticles() {
       cosmicParticles.forEach(particle => {
         addParticleToScene(particle);
@@ -628,26 +574,22 @@
       textElement.className = 'floating-text';
       textElement.textContent = particle.content;
       
-      // Different positioning and sizing based on entropy type
       const isSpaghettified = particle.content.includes('\n');
       const isHeavilyCorrupted = particle.content.includes('⟁⟁⟁') || particle.content.includes('★★★');
       
       let x, y, maxWidth, fontSize;
       
       if (isSpaghettified) {
-        // Spaghettified texts - position more vertically, smaller width
         x = Math.random() * (window.innerWidth - 100) + 50;
         y = Math.random() * (window.innerHeight - 300) + 100;
         maxWidth = 60;
         fontSize = '0.9rem';
       } else if (isHeavilyCorrupted) {
-        // Heavily corrupted chunks - medium positioning
         x = Math.random() * (window.innerWidth - 150) + 75;
         y = Math.random() * (window.innerHeight - 200) + 100;
         maxWidth = 120;
         fontSize = '1rem';
       } else {
-        // Partially readable - wider positioning
         x = Math.random() * (window.innerWidth - 200) + 100;
         y = Math.random() * (window.innerHeight - 150) + 75;
         maxWidth = 200;
@@ -658,8 +600,6 @@
       textElement.style.top = y + 'px';
       textElement.style.maxWidth = maxWidth + 'px';
       textElement.style.fontSize = fontSize;
-      
-      // Add random animation delay
       textElement.style.animationDelay = Math.random() * 10 + 's';
       
       document.getElementById('floating-texts-container').appendChild(textElement);
@@ -680,7 +620,6 @@
       
       createFallingElement(content, e.target);
       
-      // Add to active submissions
       activeSubmissions.push({
         content,
         createdAt: new Date().toISOString()
@@ -712,7 +651,6 @@
             if (document.body.contains(fallingElement)) {
               fallingElement.remove();
             }
-            // Convert to cosmic particle when animation ends
             convertToCosmicParticle(text);
           }, 500);
         }
@@ -762,7 +700,6 @@
       const entropyType = Math.random();
       
       if (entropyType < 0.4) {
-        // Type 1: Spaghettified (stretched into lines)
         for (let i = 0; i < chars.length; i++) {
           if (Math.random() > 0.3) {
             chars[i] = ['★', '✧', '♆', '⌇', '⟁', '⍟', '*', '~'][Math.floor(Math.random() * 8)];
@@ -770,7 +707,6 @@
         }
         return chars.join('').split('').join('\n');
       } else if (entropyType < 0.7) {
-        // Type 2: Partially corrupted but readable
         for (let i = 0; i < chars.length; i++) {
           if (Math.random() > 0.6) {
             chars[i] = ['★', '✧', '♆', '⌇', '⟁', '⍟'][Math.floor(Math.random() * 6)];
@@ -778,7 +714,6 @@
         }
         return chars.join('');
       } else {
-        // Type 3: Heavily corrupted chunks
         const words = text.split(' ');
         return words.map(word => {
           if (Math.random() > 0.5) {
@@ -816,32 +751,27 @@
 
     function updateFloatingTexts() {
       floatingTextElements.forEach((textObj, index) => {
-        // Different movement patterns based on type
         let driftMultiplier = 1;
         if (textObj.type === 'spaghetti') {
-          driftMultiplier = 0.5; // Slower, more vertical drift
+          driftMultiplier = 0.5;
           textObj.driftX += (Math.random() - 0.5) * 0.1;
           textObj.driftY += (Math.random() - 0.5) * 0.4;
         } else if (textObj.type === 'corrupted') {
-          driftMultiplier = 1.2; // More erratic movement
+          driftMultiplier = 1.2;
           textObj.driftX += (Math.random() - 0.5) * 0.4;
           textObj.driftY += (Math.random() - 0.5) * 0.4;
         } else {
-          // Readable texts move more smoothly
           textObj.driftX += (Math.random() - 0.5) * 0.2;
           textObj.driftY += (Math.random() - 0.5) * 0.2;
         }
         
-        // Constrain drift based on type
         const maxDrift = textObj.type === 'spaghetti' ? 30 : 50;
         textObj.driftX = Math.max(-maxDrift, Math.min(maxDrift, textObj.driftX));
         textObj.driftY = Math.max(-maxDrift, Math.min(maxDrift, textObj.driftY));
         
-        // Apply position
         const newX = textObj.baseX + textObj.driftX;
         const newY = textObj.baseY + textObj.driftY;
         
-        // Keep within bounds
         const elementWidth = textObj.type === 'spaghetti' ? 60 : (textObj.type === 'corrupted' ? 120 : 200);
         if (newX < 0 || newX > window.innerWidth - elementWidth) {
           textObj.driftX *= -0.5;
@@ -857,33 +787,49 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      blackHole.rotation.y += 0.005;
-      accretionDisk.rotation.z += 0.02;
       
-      // Move Hawking radiation particles
-      particles.children.forEach(p => {
-        p.position.x += (Math.random() - 0.5) * 0.02;
-        p.position.y += Math.random() * 0.03;
-        p.position.z += (Math.random() - 0.5) * 0.01;
-        if (p.position.y > 3) p.position.y = -3;
-      });
+      const time = performance.now() * 0.001;
+      blackHoleMaterial.uniforms.time.value = time;
+      diskMaterial.uniforms.time.value = time;
+
+      blackHole.rotation.y = time * 0.1;
+      accretionDisk.rotation.z = time * 0.5;
+
+      const positions = particles.geometry.attributes.position.array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const y = positions[i + 1];
+        const z = positions[i + 2];
+
+        const distance = Math.sqrt(x * x + y * y + z * z);
+        const fallFactor = 0.98 - (0.02 * (1.0 - smoothstep(1.0, 3.0, distance)));
+        const stretch = 1.0 + (2.0 / (distance + 0.1));
+        positions[i] = x * fallFactor;
+        positions[i+1] = y * fallFactor;
+        positions[i+2] = z * fallFactor * stretch;
+
+        if (distance < 0.5) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2.0 * Math.random() - 1.0);
+          const radius = 3.0 + Math.random() * 2.0;
+
+          positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+          positions[i+1] = radius * Math.sin(phi) * Math.sin(theta);
+          positions[i+2] = radius * Math.cos(phi);
+        }
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
       
-      // Move cosmic particles
       scene.children.filter(child => child.userData?.isParticle).forEach(p => {
-        // Orbit around black hole with slight randomness
         p.position.x += (Math.random() - 0.5) * 0.01;
         p.position.y += (Math.random() - 0.5) * 0.01;
         p.position.z += (Math.random() - 0.5) * 0.01;
-        
-        // Slight pull toward center
         p.position.x *= 0.995;
         p.position.y *= 0.995;
         p.position.z *= 0.995;
       });
       
-      // Update floating text positions
       updateFloatingTexts();
-      
       renderer.render(scene, camera);
     }
 
@@ -892,14 +838,12 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       
-      // Reposition floating texts on resize
       floatingTextElements.forEach(textObj => {
         textObj.baseX = Math.random() * (window.innerWidth - 200) + 100;
         textObj.baseY = Math.random() * (window.innerHeight - 200) + 100;
       });
     });
 
-    // Initialize and start everything
     startEntropyEscalation();
     initializeCosmicParticles();
     animate();
