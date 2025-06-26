@@ -267,6 +267,12 @@
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
+    //Smoostep function
+    function smoothstep(min, max, value) {
+      const x = Math.max(0, Math.min(1, (value - min) / (max - min)));
+      return x * x * (3 - 2 * x);
+    }
+
     //Starfield background
     const starGeometry = new THREE.BufferGeometry();
     const starMaterial = new THREE.PointsMaterial({
@@ -310,15 +316,15 @@
         void main() {
           vec2 p = vUv * 2.0 - 1.0;
           float radius = length(p);
-          if (radius > 1.0) discard;
+          if (radius > 0.95) discard;
 
           //Event horizon effect
-          float distortionFactor = 1.0 - smoothstep(0.6, 1.0, radius);
-          vec2 distortedUV = p * (1.0 + distortionFactor * distortion);
+          float distortionFactor = 1.0 - smoothstep(0.4, 0.95, radius), 2.0;
+          vec2 distortedUV = p * (1.0 + distortionFactor * distortion * 0.5);
 
           // Gravitational lensing effect
-          float lensing = pow(1.0 - radius, power);
-          vec2 lensedUV = distortedUV * (1.0 + lensing * 0.5);
+          float lensing = pow(1.0 - radius, power) * 2.0;
+          vec2 lensedUV = distortedUV * (1.0 + lensing);
 
           // Inner glow
           float innerGlow = smoothstep(0.9, 0.3, radius);
@@ -336,7 +342,7 @@
 
     // Black hole mesh
     const blackHole = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 64, 64),
+      new THREE.SphereGeometry(1.2, 64, 64),
       blackHoleMaterial
     );
     scene.add(blackHole);
@@ -422,7 +428,7 @@
     particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particlePositions, 3));
     const particles = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(particles);
-    camera.position.z = 5;
+    camera.position.z = 4;
 
     // ===== ENTROPIC ESCALATION NOISE =====
     let entropyLevel = 0;
