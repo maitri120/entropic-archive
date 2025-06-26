@@ -57,6 +57,70 @@
       z-index: 1;
       white-space: pre-wrap;
     }
+
+    #transmission-zone {
+      display:flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 30vh;
+      margin-bottom: 2rem;
+      transition: all 0.6s ease-in-out;
+    }
+
+    .console-glass {
+      background: rgba(20, 20, 30, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(120, 120, 200, 0.2);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(75, 121, 207, 0.3);
+      transition: all 0.3s ease;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .console-glass:hover {
+      box-shadow: 0 0 40px rgba(75, 121, 207, 0.5);
+    }
+
+    textarea {
+      background: transparent;
+      color: #ccf;
+      border: none;
+      outline: none;
+      width: 100%;
+      resize:none;
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      line-height: 1.4;
+      padding: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    textarea::placeholder {
+      color: rgba(170, 200, 255, 0.3);
+    }
+
+    .transmit-button {
+      margin-top: 1rem;
+      padding: 0.5rem 1.2rem;
+      background: rgba(90, 120, 255, 0.15);
+      color: #88ccff;
+      font-family: 'Space Mono', monospace;
+      border: 1px solid rgba(136, 204, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.4s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .transmit-button:hover {
+      background: rgba(120, 160, 255, 0.25);
+      color: white;
+      letter-spacing: 2px;
+      transform: scale(1.05);
+      box-shadow: 0 0 12px rgba(136, 204, 255, 0.4);
+    }
     
     @keyframes flicker {
       from { opacity: 1; }
@@ -211,10 +275,14 @@
   <canvas id="blackhole-canvas"></canvas>
   <h1>The Entropic Archive</h1>
 
-  <form id="archive-form">
-    <textarea name="content" rows="3" placeholder="Submit your thoughts to the void..." required></textarea><br>
-    <button type="submit">Collapse into the Archive</button>
-  </form>
+  <div id="transmission-zone">
+    <form id="archive-form">
+      <div class="console-glass">
+      <textarea name="content" rows="3" placeholder="Submit your thoughts to the void..." required></textarea><br>
+      <button type="submit" class="transmit-button">Collapse into the Archive</button>
+      </div>
+    </form>
+  </div>
 
   <div id="submissions-container"></div>
   <div id="floating-texts-container"></div>
