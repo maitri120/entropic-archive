@@ -1,0 +1,6 @@
+Statement:
+
+"The Entropic Archive" is an interactive web experience that visualises the black hole information paradox through user participation and input. Users can submit texts- thoughts, poetry, or theories- which are gradually consumed by the simulated black hole, which undergoes entropy-driven corruption  distortion. As the time passes, the distortion increases, leading to glitches, cosmic noises explaining the theories of quantum preservation and realistic destruction. 
+This project lets users experience various black hole theories/concepts such as Event Horizon, Hawking's Radiation, and Spaghettification.
+
+(Technical Context: Built with Three.js, the project combines generative text decay, particle physics, and entropy escalation to create an image about cosmic uncertainty.)
