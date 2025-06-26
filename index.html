@@ -293,14 +293,31 @@
     .stat-label {
       color: rgba(136, 204, 255, 0.6);
     }
-
-
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
   <canvas id="blackhole-canvas"></canvas>
   <h1>The Entropic Archive</h1>
+
+  <div class="entropy-graph">
+    <div class="graph-title">ENTROPIC ESCALATION</div>
+    <canvas class="graph-canvas"></canvas>
+    <div class="entropy-stats">
+      <div class="stat-item">
+        <div class="stat-value" id="current-entropy">0</div>
+        <div class="stat-label">CURRENT</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="peak-entropy">0</div>
+        <div class="stat-label">PEAK</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="time-elapsed">0s</div>
+        <div class="stat-label">TIME</div>
+      </div>
+    </div>
+  </div>
 
   <div id="transmission-zone">
     <form id="archive-form">
@@ -378,7 +395,7 @@
           if (radius > 0.95) discard;
 
           //Event horizon effect
-          float distortionFactor = 1.0 - smoothstep(0.4, 0.95, radius), 2.0;
+          float distortionFactor = 1.0 - smoothstep(0.4, 0.95, radius);
           vec2 distortedUV = p * (1.0 + distortionFactor * distortion * 0.5);
 
           // Gravitational lensing effect
@@ -494,12 +511,118 @@
     let timeOnPage = 0;
     const maxEntropy = 100;
     let entropyInterval;
+    let entropyHistory = [];
+    let peakEntropy = 0;
+    let startTime = Date.now();
+
+    // ===== ENTROPY GRAPH FUNCTIONS =====
+    function initEntropyGraph() {
+      const canvas = document.querySelector('.graph-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      drawEntropyGraph(ctx);
+    }
+
+    function drawEntropyGraph(ctx) {
+      const canvas = ctx.canvas;
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 10;
+      const graphWidth = width - padding * 2;
+      const graphHeight = height - padding * 2;
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      // Draw grid
+      ctx.strokeStyle = 'rgba(136, 204, 255, 0.2)';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      for (let i = 0; i <= 5; i++) {
+        const y = padding + (graphHeight - (i * graphHeight / 5));
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        
+        // Grid labels
+        ctx.fillStyle = 'rgba(136, 204, 255, 0.6)';
+        ctx.font = '8px Space Mono';
+        ctx.textAlign = 'right';
+        ctx.fillText(Math.floor((i * maxEntropy) / 5), padding - 5, y + 3);
+      }
+      
+      // Draw graph line
+      if (entropyHistory.length > 1) {
+        ctx.strokeStyle = '#4b79cf';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const maxTime = Math.max(60, entropyHistory[entropyHistory.length - 1].time);
+        const xScale = graphWidth / maxTime;
+        const yScale = graphHeight / maxEntropy;
+        
+        for (let i = 0; i < entropyHistory.length; i++) {
+          const x = padding + (entropyHistory[i].time * xScale);
+          const y = padding + (graphHeight - (entropyHistory[i].value * yScale));
+          
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        
+        ctx.stroke();
+        
+        // Draw fill
+        ctx.fillStyle = 'rgba(75, 121, 207, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(padding, padding + graphHeight);
+        for (let i = 0; i < entropyHistory.length; i++) {
+          const x = padding + (entropyHistory[i].time * xScale);
+          const y = padding + (graphHeight - (entropyHistory[i].value * yScale));
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(padding + (entropyHistory[entropyHistory.length - 1].time * xScale), padding + graphHeight);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Update stats
+      document.getElementById('current-entropy').textContent = Math.floor(entropyLevel);
+      document.getElementById('peak-entropy').textContent = Math.floor(peakEntropy);
+      document.getElementById('time-elapsed').textContent = `${Math.floor((Date.now() - startTime) / 1000)}s`;
+    }
+
+    function updateEntropyGraph() {
+      const currentTime = (Date.now() - startTime) / 1000;
+      entropyHistory.push({
+        time: currentTime,
+        value: entropyLevel
+      });
+      
+      if (entropyHistory.length > 100) {
+        entropyHistory = entropyHistory.slice(-100);
+      }
+      
+      if (entropyLevel > peakEntropy) {
+        peakEntropy = entropyLevel;
+      }
+      
+      const ctx = document.querySelector('.graph-canvas').getContext('2d');
+      drawEntropyGraph(ctx);
+    }
 
     function startEntropyEscalation() {
+      initEntropyGraph(); // Initialize the graph
+      
       entropyInterval = setInterval(() => {
         timeOnPage += 5;
         entropyLevel = Math.min(timeOnPage ** 0.7, maxEntropy);
         applyEntropicEffects();
+        updateEntropyGraph(); // Update the graph with new data
       }, 5000);
     }
 
@@ -893,6 +1016,11 @@
         p.position.y *= 0.995;
         p.position.z *= 0.995;
       });
+      
+      // Update graph periodically (more frequently than the entropy escalation)
+      if (Date.now() % 1000 < 16) { // ~once per second
+        updateEntropyGraph();
+      }
       
       updateFloatingTexts();
       renderer.render(scene, camera);
